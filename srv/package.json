@@ -1,0 +1,22 @@
+{
+  "name": "srv",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "Express",
+    "Node.js",
+    "HTTP",
+    "API REST"
+  ],
+  "author": "AngelB6",
+  "license": "ISC",
+  "description": "API parte del proyecto de formación de MQA",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.1"
+  }
+}
