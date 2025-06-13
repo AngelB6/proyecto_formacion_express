@@ -1,21 +1,94 @@
-class GenreControllers {
+// Importamos el modelo
+const Genre = require("../models/genreModels");
+
+class GenreController {
   constructor() {}
 
-  get(req, res) {
-    res.json({ message: "get GenreController" });
+  // Método para obtener todos los registros de genero
+  async getGenres(req, res, next) {
+    try {
+      const genres = await Genre.findAll();
+      res.status(200).json(genres);
+    } catch (error) {
+      next(error);
+    }
   }
 
-  getID(req, res) {
-    res.json({ message: "get ID GenreController" });
+  // Método para obtener un solo registro de genero con ID
+  async getGenreByID(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const genre = await Genre.findByPk(id);
+
+      if (!genre) {
+        return res
+          .status(404)
+          .json({ message: `Genero con ID ${id} no encontrado` });
+      }
+
+      res.status(200).json(genre);
+    } catch (error) {
+      next(error);
+    }
   }
 
-  post(req, res) {
-    res.json({ message: "post GenreController" });
+  // Método para crear un nuevo registro de genero
+  async createGenere(req, res, next) {
+    try {
+      const { genre } = req.body;
+
+      if (!genre) {
+        return res
+          .status(400)
+          .json({ message: "El nombre del genero es obligatorio" });
+      }
+
+      const newGenere = await Genre.create({ genre });
+
+      res.status(201).json(newGenere);
+    } catch (error) {
+      if (error.name === "SequelizeUniqueConstraintError") {
+        return res.status(409).json({
+          message: "Ya existe un genero con este nombre",
+        });
+      }
+      next(error);
+    }
   }
 
-  delete(req, res) {
-    res.json({ message: "delete GenreController" });
+  // Método para eliminar un registro de genero
+  async deleteGenere(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const deletedRows = await Genre.destroy({
+        where: { id: id },
+      });
+
+      if (deletedRows === 0) {
+        return res.status(404).json({
+          message: `El genero con ID ${id} no fue encontrado por lo que no fue posible eliminarlo`,
+        });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
-module.exports = new GenreControllers();
+module.exports = new GenreController();

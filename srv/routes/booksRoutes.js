@@ -2,13 +2,13 @@ const express = require("express");
 const routes = express.Router();
 const booksControllers = require("../controllers/booksControllers");
 
-routes.get("/", booksControllers.get);
+routes.get("/", booksControllers.getBooks);
 
-routes.post("/", booksControllers.post);
+routes.post("/", booksControllers.createBook);
 
 routes
   .route("/:id")
-  .get(booksControllers.getID)
-  .delete(booksControllers.delete);
+  .get(booksControllers.getBookByID)
+  .delete(booksControllers.deleteBook);
 
 module.exports = routes;

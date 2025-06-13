@@ -1,14 +1,15 @@
 const express = require("express");
 const routes = express.Router();
-const authorsControllers = require("../controllers/authorsControllers");
 
-routes.get("/", authorsControllers.get);
+const authorsController = require("../controllers/authorsControllers");
 
-routes.post("/", authorsControllers.post);
+routes.get("/", authorsController.getAuthors);
+
+routes.post("/", authorsController.createAuthor);
 
 routes
   .route("/:id")
-  .get(authorsControllers.getID)
-  .delete(authorsControllers.delete);
+  .get(authorsController.getAuthorByID)
+  .delete(authorsController.deleteAuthor);
 
 module.exports = routes;
