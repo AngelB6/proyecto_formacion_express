@@ -1,68 +1,94 @@
-const db = require("../database/conexion");
+// Importamos el modelo
+const Genre = require("../models/genreModels");
 
-class GenreControllers {
+class GenreController {
   constructor() {}
 
-  get(req, res) {
+  // Método para obtener todos los registros de genero
+  async getGenres(req, res, next) {
     try {
-      db.query("SELECT * FROM genre;", (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows);
-      });
+      const genres = await Genre.findAll();
+      res.status(200).json(genres);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  getID(req, res) {
+  // Método para obtener un solo registro de genero con ID
+  async getGenreByID(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("SELECT * FROM genre WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows[0]);
-      });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const genre = await Genre.findByPk(id);
+
+      if (!genre) {
+        return res
+          .status(404)
+          .json({ message: `Genero con ID ${id} no encontrado` });
+      }
+
+      res.status(200).json(genre);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  post(req, res) {
+  // Método para crear un nuevo registro de genero
+  async createGenere(req, res, next) {
     try {
       const { genre } = req.body;
-      db.query(
-        "INSERT INTO genre (id, genre) VALUES (NULL,?);",
-        [genre],
-        (error, rows) => {
-          if (error) {
-            res.status(400).send(error);
-          }
-          res
-            .status(201)
-            .json({ message: `Creación exitosa ${rows.insertId}` });
-        }
-      );
+
+      if (!genre) {
+        return res
+          .status(400)
+          .json({ message: "El nombre del genero es obligatorio" });
+      }
+
+      const newGenere = await Genre.create({ genre });
+
+      res.status(201).json(newGenere);
     } catch (error) {
-      res.status(500).send(error.message);
+      if (error.name === "SequelizeUniqueConstraintError") {
+        return res.status(409).json({
+          message: "Ya existe un genero con este nombre",
+        });
+      }
+      next(error);
     }
   }
 
-  delete(req, res) {
+  // Método para eliminar un registro de genero
+  async deleteGenere(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("DELETE FROM genre WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json({ message: "Eliminación exitosa" });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const deletedRows = await Genre.destroy({
+        where: { id: id },
       });
+
+      if (deletedRows === 0) {
+        return res.status(404).json({
+          message: `El genero con ID ${id} no fue encontrado por lo que no fue posible eliminarlo`,
+        });
+      }
+
+      res.status(204).send();
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 }
 
-module.exports = new GenreControllers();
+module.exports = new GenreController();

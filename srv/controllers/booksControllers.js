@@ -1,38 +1,42 @@
-const db = require("../database/conexion");
+const Books = require("../models/booksModels");
 
-class BooksControllers {
+class BooksController {
   constructor() {}
 
-  get(req, res) {
+  async getBooks(req, res, next) {
     try {
-      db.query("SELECT * FROM books;", (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows);
-      });
+      const books = await Books.findAll();
+      res.status(200).json(books);
     } catch (error) {
-      if (error) {
-        res.status(500).send(error.message);
-      }
+      next(error);
     }
   }
 
-  getID(req, res) {
+  async getBookByID(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("SELECT * FROM books WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows[0]);
-      });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const books = await Books.findByPk(id);
+
+      if (!books) {
+        return res
+          .status(404)
+          .json({ message: `Libro con ID ${id} no encontrado` });
+      }
+
+      res.status(200).json(books);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  post(req, res) {
+  async createBook(req, res, next) {
     try {
       const {
         title,
@@ -42,36 +46,58 @@ class BooksControllers {
         genre_id,
         authors_id,
       } = req.body;
-      db.query(
-        "INSERT INTO books (title, rating, total_pages, published_date, genre_id, authors_id) VALUES (?,?,?,?,?,?);",
-        [title, rating, total_pages, published_date, genre_id, authors_id],
-        (error, rows) => {
-          if (error) {
-            res.status(400).send(error);
-          }
-          res
-            .status(200)
-            .json({ message: `Inserción correcta con ID:${rows.insertId}` });
-        }
-      );
+
+      if (
+        !title ||
+        !rating ||
+        !total_pages ||
+        !published_date ||
+        !genre_id ||
+        !authors_id
+      ) {
+        return res.status(400).json({ message: "Tienes campos vacíos" });
+      }
+
+      const newBook = await Books.create({
+        title,
+        rating,
+        total_pages,
+        published_date,
+        genre_id,
+        authors_id,
+      });
+
+      res.status(201).json(newBook);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  delete(req, res) {
+  async deleteBook(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("DELETE FROM books WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json({ message: "Eliminación exitosa" });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const deletedRows = await Books.destroy({
+        where: { id: id },
       });
+
+      if (deletedRows === 0) {
+        return res.status(404).json({
+          message: `El libro con ID ${id} no fue encontrado por lo que no fue posible eliminarlo`,
+        });
+      }
+
+      res.status(204).send();
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 }
 
-module.exports = new BooksControllers();
+module.exports = new BooksController();

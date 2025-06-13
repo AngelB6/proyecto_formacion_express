@@ -1,68 +1,83 @@
-const db = require("../database/conexion");
+const Authors = require("../models/authorsModels");
 
-class AuthorsControllers {
+class AuthorsController {
   constructor() {}
 
-  get(req, res) {
+  async getAuthors(req, res, next) {
     try {
-      db.query("SELECT * FROM authors;", (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows);
-      });
+      const authors = await Authors.findAll();
+      res.status(200).json(authors);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  getID(req, res) {
+  async getAuthorByID(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("SELECT * FROM authors WHERE id = ?", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows[0]);
-      });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const author = await Authors.findByPk(id);
+
+      if (!author) {
+        return res
+          .status(404)
+          .json({ message: `Autor con ID ${id} no encontrado` });
+      }
+
+      res.status(200).json(author);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  post(req, res) {
+  async createAuthor(req, res, next) {
     try {
       const { name, surname } = req.body;
-      db.query(
-        "INSERT INTO authors (name, surname) VALUES (?, ?)",
-        [name, surname],
-        (error, rows) => {
-          if (error) {
-            res.status(400).send(error);
-          }
-          res
-            .status(201)
-            .json({ message: `Inserción exitosa con ID:${rows.insertId}` });
-        }
-      );
+
+      if (!name || !surname) {
+        return res.status(400).json({
+          message: "Los datos nombre o apellido no pueden estar vacíos",
+        });
+      }
+
+      const newAuthor = await Authors.create({ name, surname });
+
+      res.status(201).json({ newAuthor });
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  delete(req, res) {
+  async deleteAuthor(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("DELETE FROM authors WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json({ message: "Eliminación exitosa" });
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const deletedRows = await Authors.destroy({
+        where: { id: id },
       });
+
+      if (deletedRows === 0) {
+        return res
+          .status(404)
+          .json({ message: `Autor con ID ${id} no encontrado` });
+      }
+
+      res.status(204).send();
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 }
 
-module.exports = new AuthorsControllers();
+module.exports = new AuthorsController();

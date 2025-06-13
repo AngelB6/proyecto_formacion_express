@@ -1,68 +1,85 @@
-const db = require("../database/conexion");
+const Publisher = require("../models/publisherModels");
 
-class PublisherControllers {
+class PublisherController {
   constructor() {}
 
-  get(req, res) {
+  async getPublishers(req, res, next) {
     try {
-      db.query("SELECT * FROM publisher;", (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows);
-      });
+      const books = await Publisher.findAll();
+      res.status(200).json(books);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  getID(req, res) {
+  async getPublisherByID(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("SELECT * FROM publisher WHERE id = ?;", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json(rows[0]);
-      });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const publishers = await Publisher.findByPk(id);
+
+      if (!publishers) {
+        return res
+          .status(404)
+          .json({ message: `Editorial con ID ${id} no encontrado` });
+      }
+
+      res.status(200).json(publishers);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  post(req, res) {
+  async createPublisher(req, res, next) {
     try {
       const { name, books_id } = req.body;
-      db.query(
-        "INSERT INTO publisher (name, books_id) VALUES (?, ?);",
-        [name, books_id],
-        (error, rows) => {
-          if (error) {
-            res.status(400).send(error);
-          }
-          res
-            .status(201)
-            .json({ message: `Inserción exitosa ID: ${rows.insertId}` });
-        }
-      );
+
+      if (!name || !books_id) {
+        return res.status(400).json({ message: "Tienes campos vacíos" });
+      }
+
+      const newPublisher = await Publisher.create({
+        name,
+        books_id,
+      });
+
+      res.status(201).json(newPublisher);
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 
-  delete(req, res) {
+  async deletePublisher(req, res, next) {
     try {
       const { id } = req.params;
-      db.query("DELETE FROM publisher WHERE id = ?", [id], (error, rows) => {
-        if (error) {
-          res.status(400).send(error);
-        }
-        res.status(200).json({ message: "Eliminación exitosa" });
+
+      if (isNaN(id)) {
+        return res
+          .status(400)
+          .json({ message: "El ID debe ser de tipo numérico" });
+      }
+
+      const deletedRows = await Publisher.destroy({
+        where: { id: id },
       });
+
+      if (deletedRows === 0) {
+        return res.status(404).json({
+          message: `La editorial con ID ${id} no fue encontrado por lo que no fue posible eliminarlo`,
+        });
+      }
+
+      res.status(204).send();
     } catch (error) {
-      res.status(500).send(error.message);
+      next(error);
     }
   }
 }
 
-module.exports = new PublisherControllers();
+module.exports = new PublisherController();
